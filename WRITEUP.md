@@ -32,10 +32,11 @@ people, they could be COVID-19 risks (would use the Flir Lepton 2.5 with Purethe
   * Jetson nano
   * Raspberry Pi cpu
 * Convert model to tensorflow lite and compare with OpenVINO
+* Customizable batch shape
 
 ### Achieved stretch goals
 
-PLACEHOLDER for stretch goals that have been achieved
+* Customizable batch shape - this didn't seem to impact performance on CPU
 
 ## Choosing a Model and the Model Optimizer
 
@@ -104,7 +105,7 @@ Model Type                 | Model Size | Inference Time (single) | Inference Ti
 ---------------------------|------------|-------------------------|------------------------|------------
 frozen_inference_graph.pb  | 129 MB     | 1.2 seconds             | 1.2 seconds            | 2.3 seconds
 saved_model.pb             | 129 MB     | 1.3 seconds             | 1.4 seconds            | 3.1 seconds
-frozen_inference_graph.bin | 200 MB     |
+frozen_inference_graph.bin | 200 MB     | 1.5 seconds             | 1.5 seconds            | 1.5 seconds
 
 ## Assess Model Use Cases
 

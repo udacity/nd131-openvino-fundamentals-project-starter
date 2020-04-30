@@ -59,7 +59,11 @@ RUN curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add
   && pip3 install \
     numpy \
     paho-mqtt \
-  && pip3 install -r /opt/intel/openvino/deployment_tools/model_optimizer/requirements.txt
+    opencv-python-headless \
+    tensorflow \
+    ipython \
+  && pip3 install -r /opt/intel/openvino/deployment_tools/model_optimizer/requirements.txt \
+  && echo "source /opt/intel/openvino/bin/setupvars.sh" >> /root/.bashrc
 
 # ENVIRONMENT SETUP
 COPY nd131-openvino-fundamentals-project-starter $WORKSPACE/

@@ -22,47 +22,188 @@
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-import os
-import sys
-import logging as log
-from openvino.inference_engine import IENetwork, IECore
+#import os
+#import sys
+#import logging as log
+import time
+import cv2
+import numpy as np
+from openvino.inference_engine import IECore #IENetwork,
 
 
 class Network:
     """
-    Load and configure inference plugins for the specified target devices 
+    Load and configure inference plugins for the specified target devices
     and performs synchronous and asynchronous modes for the specified infer requests.
     """
 
-    def __init__(self):
-        ### TODO: Initialize any class variables desired ###
+    def __init__(self, model, device, batch_size=1):
+        """Initialize the parameters"""
+        self.model = model
+        self.device = device
+        self.batch_size = batch_size
 
     def load_model(self):
-        ### TODO: Load the model ###
-        ### TODO: Check for supported layers ###
-        ### TODO: Add any necessary extensions ###
-        ### TODO: Return the loaded inference plugin ###
-        ### Note: You may need to update the function parameters. ###
+        """Load the model"""
+        model_weights = self.model + '.bin'
+        model_structure = self.model + '.xml'
+
+        t1 = cv2.getTickCount()
+        #model=IENetwork(model_structure, model_weights)
+
+        core = IECore()
+        #self.net = core.load_network(network=model, device_name=self.device, num_requests=1)
+        self.net = core.read_network(model=model_structure, weights=model_weights)
+        self.net.batch_size = self.batch_size
+        self.exec_net = core.load_network(network=self.net, device_name=self.device)
+
+        t2 = cv2.getTickCount()
+        print(f'Time taken to load model = {(t2-t1)/cv2.getTickFrequency()} seconds')
+
+        # Get the supported layers of the network
+        supported_layers = core.query_network(network=self.net, device_name=self.device)
+
+        # Check for any unsupported layers, and let the user
+        # know if anything is missing. Exit the program, if so.
+        unsupported_layers = [l for l in self.net.layers.keys() if l not in supported_layers]
+        if len(unsupported_layers) != 0:
+            print("Unsupported layers found: {}".format(unsupported_layers))
+            print("Check whether extensions are available to add to IECore.")
+            exit(1)
+
+        # Get the input layer
+        self.input_blob = next(iter(self.exec_net.inputs))
+
+        self.output_blob = next(iter(self.exec_net.outputs))
         return
 
     def get_input_shape(self):
-        ### TODO: Return the shape of the input layer ###
-        return
+        """Return the input shape"""
+        return self.net.inputs[self.input_blob].shape
 
-    def exec_net(self):
-        ### TODO: Start an asynchronous request ###
-        ### TODO: Return any necessary information ###
-        ### Note: You may need to update the function parameters. ###
-        return
+    def async_exec_net(self, batch):
+        """
+        Asynchronously run prediction on a batch with the network
 
-    def wait(self):
-        ### TODO: Wait for the request to be complete. ###
-        ### TODO: Return any necessary information ###
-        ### Note: You may need to update the function parameters. ###
-        return
+        Parameters
+        ----------
+            batch: the batch of images to perform inference on
 
-    def get_output(self):
-        ### TODO: Extract and return the output results
-        ### Note: You may need to update the function parameters. ###
-        return
+        Returns
+        -------
+            infer_request_handle: the handle for the asynchronous request, needed by async_wait
+        """
+        infer_request_handle = self.exec_net.start_async(request_id=0, inputs={self.input_blob: batch})
+        return infer_request_handle
 
+    def async_wait(self, infer_request_handle):
+        """
+        Wait for an asynchronous call to finish and return the detections
+
+        Returns
+        -------
+            detections: the network's detections
+        """
+        while True:
+            status = infer_request_handle.wait(-1)
+            if status == 0:
+                break
+            else:
+                time.sleep(1)
+        detections = infer_request_handle.outputs
+        return detections
+
+    def sync_exec_net(self, image):
+        """
+        Synchronously run prediction on a batch with the network
+
+        Parameters
+        ----------
+            batch: the batch of images to perform inference on
+
+        Returns
+        -------
+            detections_arr: the array of detections
+        """
+        t1 = cv2.getTickCount()
+        detections = self.exec_net.infer({self.input_blob: image})
+        t2 = cv2.getTickCount()
+        print(f'Time taken to execute model = {(t2-t1)/cv2.getTickFrequency()} seconds')
+        return detections
+
+    def get_output(self, detections_arr, threshold=0.3):
+        """
+        Change the format of the detections
+
+        Parameters
+        ----------
+            detections_arr: the tensorflow object detection api network output as produced by OpenVINO, an array of detections
+            threshold: discard detections with a score lower than this threshold
+        Returns
+        -------
+            detections: a dictionary of detections meeting the criteria
+        """
+        output = np.concatenate(detections_arr['DetectionOutput'][:, 0, :, :], axis=0)
+        # filter based on threshold
+        output = output[output[:, 2]>threshold, :]
+        #print(output) #TODO bbox output looks wrong for batch size > 1
+        #print(output.shape)
+        return {'batch': output[:, 0],
+                'class': output[:, 1],
+                'score': output[:, 2],
+                'bbox': output[:, 3:]}
+
+def preprocess_image(image, width=640, height=640):
+    image = cv2.resize(image.copy(), (width, height)) #TODO verify resizing correctly
+    image = image[:, :, ::-1] # BGR2RGB
+    image = image.transpose((2,0,1)) # Channels first
+    return image
+
+def draw_bboxes(image, detections):
+    img = image.copy()
+    for i in range(detections['batch'].shape[0]):
+        classId = int(detections['class'][i])
+        score = float(detections['score'][i])
+        bbox = [float(v) for v in detections['bbox'][i]]
+        print(f"class: {classId}, score: {score}, bbox: {bbox}")
+        if score > 0.3:
+            y = bbox[1] * img.shape[0]
+            x = bbox[0] * img.shape[1]
+            bottom = bbox[3] * img.shape[0]
+            right = bbox[2] * img.shape[1]
+            cv2.rectangle(img, (int(x), int(y)), (int(right), int(bottom)), (125, 255, 51), thickness=2)
+    return img
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Use OpenVino to detect objects in an image, uses intermediate representation with tensorflow object detection api')
+    parser.add_argument('--filepath', default='resources/image_0100.jpeg', type=str, help='path to the image file')
+    parser.add_argument('--model', default='frozen_inference_graph', type=str, help='path to the model excluding the extension')
+    parser.add_argument('--device', default='CPU', type=str, help='the device to run inference on, one of CPU, GPU, MYRIAD, FPGA')
+    parser.add_argument('--batch-size', default=1, type=int, help='size of the batch')
+
+    args = parser.parse_args()
+
+    img = cv2.imread(args.filepath)
+
+    net = Network(args.model, args.device, args.batch_size)
+    net.load_model()
+    input_shape = net.get_input_shape()
+    print(f'input_shape {input_shape}')
+
+    image = preprocess_image(img, input_shape[3], input_shape[2])
+    batch = np.stack((np.squeeze(image), ) * args.batch_size, axis=0)
+
+    # synchronous example
+    #detections = net.sync_exec_net(batch)
+    #detections = net.sync_exec_net(batch)
+
+    # asynchronous example
+    handle = net.async_exec_net(batch)
+    detections = net.async_wait(handle)
+    detections_dict = net.get_output(detections)
+
+    img = draw_bboxes(img, detections_dict)
+
+    cv2.imwrite('ov_od.png', img)
