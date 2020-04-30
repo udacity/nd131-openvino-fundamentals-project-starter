@@ -1,8 +1,73 @@
 # Project Write-Up
 
-You can use this document as a template for providing your project write-up. However, if you
-have a different format you prefer, feel free to use it as long as you answer all required
-questions.
+## Requirements
+
+The model will be deployed on the edge, such that only data on:
+1) the number of people in the frame
+2) time those people spent in frame
+3) the total number of people counted are sent to a MQTT server
+
+
+## Stretch Goals
+
+### Suggested stretch goals
+
+* Add an alarm or notification when the app detects above a certain number of people on video, or
+people are on camera longer than a certain length of time.
+* Try out different models than the People Counter, including a model you have trained. Note that
+this may require some alterations to what information is passed through MQTT and what would need to be displayed by the UI.
+* Deploy to an IoT device (outside the classroom workspace or your personal computer), such as a
+Raspberry Pi with Intel® Neural Compute Stick.
+* Add a recognition aspect to your app to be able to tell if a previously counted person returns to
+the frame. The recognition model could also be processed on a second piece of hardware.
+* Add a toggle to the UI to shut off the camera feed and show stats only (as well as to toggle the
+camera feed back on). Show how this affects performance (including network effects) and power.
+
+### Alternative stretch goals
+
+* Add a thermal camera and estimate body temperature of each person, send an alarm for feverish
+people, they could be COVID-19 risks (would use the Flir Lepton 2.5 with Purethermal2)
+* Add a stereo camera such as the Intel Realsense and estimate distance from the camera
+* Compare the throughput with some non-Intel hardware, eg
+  * Jetson nano
+  * Raspberry Pi cpu 
+
+## Choosing a Model and the Model Optimizer
+
+I wanted to choose a newer more accurate model than the ssd mobilenet v2 that we used in the
+course, yet something light enough to run on an edge device such as a cpu.  I found the list of
+supported tensorflow models at this link:
+
+https://docs.openvinotoolkit.org/latest/_docs_MO_DG_prepare_model_convert_model_Convert_Model_From_TensorFlow.html
+
+This eliminated some of the more recent developments in tensorflow such as efficient-dets and
+spine net.  I chose to go with ssd resnet 50, because an object detection model will make counting
+people easy (requirement 1), and I can use the bounding box location to determine if it is the
+same person so I can count the time spent in the frame (requirement 2) and differentiate new
+people (requirement 3).
+
+The tensorflow object detection model zoo is here:
+
+https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
+
+The ssd resnet 50 model is here:
+
+http://download.tensorflow.org/models/object_detection/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03.tar.gz
+
+The commands I used to convert my model to an intermediate representation was:
+
+```bash
+wget http://download.tensorflow.org/models/object_detection/ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03.tar.gz
+tar xvf ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03.tar.gz
+export MOD_OPT=/opt/intel/openvino/deployment_tools/model_optimizer
+export MOD_DIR=ssd_resnet50_v1_fpn_shared_box_predictor_640x640_coco14_sync_2018_07_03
+
+python3 $MOD_OPT/mo.py \
+  --input_model $MOD_DIR/frozen_inference_graph.pb \
+  --tensorflow_object_detection_api_pipeline_config $MOD_DIR/pipeline.config \
+  --reverse_input_channels \
+  --transformations_config $MOD_OPT/extensions/front/tf/ssd_v2_support.json
+```
 
 ## Explaining Custom Layers
 

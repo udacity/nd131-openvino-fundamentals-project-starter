@@ -65,3 +65,4 @@ class Network:
         ### TODO: Extract and return the output results
         ### Note: You may need to update the function parameters. ###
         return
+
