@@ -30,7 +30,12 @@ people, they could be COVID-19 risks (would use the Flir Lepton 2.5 with Purethe
 * Add a stereo camera such as the Intel Realsense and estimate distance from the camera
 * Compare the throughput with some non-Intel hardware, eg
   * Jetson nano
-  * Raspberry Pi cpu 
+  * Raspberry Pi cpu
+* Convert model to tensorflow lite and compare with OpenVINO
+
+### Achieved stretch goals
+
+PLACEHOLDER for stretch goals that have been achieved
 
 ## Choosing a Model and the Model Optimizer
 
@@ -71,9 +76,19 @@ python3 $MOD_OPT/mo.py \
 
 ## Explaining Custom Layers
 
-The process behind converting custom layers involves...
+The process I used for converting custom layers was to use the Intel OpenVINO model optimizer with
+it's ssd_v2_support.json file to handle some of the custom layers used by my selected model is
+explained in the previous section.
 
-Some of the potential reasons for handling custom layers are...
+Some of the potential reasons for handling custom layers include:
+* actual implementation of a layer may depend on the framework, if Intel writes a meta-layer to
+encapsulate some of these minor differences they can then specify what the layer does using a
+previously defined layer
+* researchers haven't settled on an ideal set of layers, many of the layers being experimented
+with are easily implemented with common mathematical and image filtering operations, by supporting
+custom layers users can rely on third party libraries to provide the functionality required,
+giving Intel time to make a more optimized version or researchers time to find more efficient
+layers
 
 ## Comparing Model Performance
 
@@ -82,9 +97,14 @@ were...
 
 The difference between model accuracy pre- and post-conversion was...
 
-The size of the model pre- and post-conversion was...
 
-The inference time of the model pre- and post-conversion was...
+### The size of the model pre- and post-conversion was:
+
+Model Type                 | Model Size | Inference Time (single) | Inference Time (batch) | Load Time
+---------------------------|------------|-------------------------|------------------------|------------
+frozen_inference_graph.pb  | 129 MB     | 1.2 seconds             | 1.2 seconds            | 2.3 seconds
+saved_model.pb             | 129 MB     | 1.3 seconds             | 1.4 seconds            | 3.1 seconds
+frozen_inference_graph.bin | 200 MB     |
 
 ## Assess Model Use Cases
 
