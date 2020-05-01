@@ -45,12 +45,12 @@ class Network:
         model_weights = self.model + '.bin'
         model_structure = self.model + '.xml'
 
-        t1 = cv2.getTickCount()
+        #t1 = cv2.getTickCount()
         core = IECore()
         self.net = core.read_network(model=model_structure, weights=model_weights)
         self.net.batch_size = self.batch_size
         self.exec_net = core.load_network(network=self.net, device_name=self.device)
-        t2 = cv2.getTickCount()
+        #t2 = cv2.getTickCount()
         #print(f'Time taken to load model = {(t2-t1)/cv2.getTickFrequency()} seconds')
 
         # Get the supported layers of the network
@@ -118,13 +118,13 @@ class Network:
         -------
             detections_arr: the array of detections
         """
-        t1 = cv2.getTickCount()
+        #t1 = cv2.getTickCount()
         detections = self.exec_net.infer({self.input_blob: image})
-        t2 = cv2.getTickCount()
+        #t2 = cv2.getTickCount()
         #print(f'Time taken to execute model = {(t2-t1)/cv2.getTickFrequency()} seconds')
         return detections
 
-    def get_output(self, detections_arr, threshold=0.3, normalization_consts=[1.0, 1.0]):
+    def get_output(self, detections_arr, threshold=0.3, whitelist_filter=[], normalization_consts=[1.0, 1.0]):
         """
         Change the format of the detections
 
@@ -132,6 +132,8 @@ class Network:
         ----------
             detections_arr: the tensorflow object detection api network output as produced by OpenVINO, an array of detections
             threshold: discard detections with a score lower than this threshold
+            whitelist_filter: the class ids to include, if empty it includes all of them
+
         Returns
         -------
             detections: a dictionary of detections meeting the criteria
@@ -141,12 +143,14 @@ class Network:
         output = output[output[:, 2]>threshold, :]
         #print(output) #TODO bbox output looks wrong for batch size > 1
         #print(output.shape)
+        if whitelist_filter:
+            output = output[np.isin(output[:, 1], whitelist_filter), :]
         return {'batch': output[:, 0],
                 'class': output[:, 1],
                 'score': output[:, 2],
                 'bbox': output[:, 3:] / np.hstack((normalization_consts, normalization_consts))}
 
-def preprocess_image(image, width=640, height=640, preserve_aspect_ratio=True):
+def preprocess_image(image, width: int=640, height: int=640, preserve_aspect_ratio: bool=True):
     """
     Parameters
     ----------
@@ -182,7 +186,7 @@ def preprocess_image(image, width=640, height=640, preserve_aspect_ratio=True):
 def draw_bboxes(image, detections):
     img = image.copy()
     for i in range(detections['batch'].shape[0]):
-        classId = int(detections['class'][i])
+        #classId = int(detections['class'][i])
         score = float(detections['score'][i])
         bbox = [float(v) for v in detections['bbox'][i]]
         if score > 0.3:
@@ -211,7 +215,7 @@ if __name__ == '__main__':
     net = Network(args.model, args.device, args.batch_size)
     net.load_model()
     input_shape = net.get_input_shape()
-    print(f'input_shape {input_shape}')
+    #print(f'input_shape {input_shape}')
 
     image, normalization_consts = preprocess_image(img, input_shape[3], input_shape[2], args.preserve_aspect_ratio)
     batch = np.stack((np.squeeze(image), ) * args.batch_size, axis=0)
