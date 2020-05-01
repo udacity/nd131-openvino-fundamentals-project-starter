@@ -48,6 +48,7 @@ RUN curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add
   && apt-get update \
   && apt-get install -y --no-install-recommends \
     nodejs \
+    npm \
     python3-dev \
     python3-pip \
     python3-setuptools \
@@ -69,4 +70,8 @@ RUN curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add
 COPY nd131-openvino-fundamentals-project-starter $WORKSPACE/
 WORKDIR $WORKSPACE
 
+RUN cd $WORKSPACE/webservice/server \
+  && npm install \
+  && cd $WORKSPACE/webservice/ui \
+  && npm install
 
