@@ -180,3 +180,13 @@ this is another possible source of blurring that could cause a drop in accuracy.
 check in advance if our end-user has a nice camera with a global shutter or if they have a rolling
 shutter, in which case we would want to collect some images from video with rolling shutter and
 determine if it is better to ignore images with these artifacts or to include them.
+
+## Results
+
+My model is a little slow on my hardware, but the accuracy is quite good. I included some
+screenshots in the output folder.  It counted people the same way I would have and the
+durations seemed accurate.  I tested on the provided video and based on discussions in the
+class chatroom ended up simplifying my logic to just count one person at a time without any kind
+of tracking.  Depending on the end use case these simplifying assumptions may need to be
+revisited, I left a TODO for that and I saw some weird results when testing batch mode which I
+left a TODO in the code for.
