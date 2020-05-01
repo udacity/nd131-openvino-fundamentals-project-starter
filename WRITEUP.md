@@ -113,6 +113,10 @@ FP16 OpenVINO IR          | 100 MB     | 1.4 seconds             | 1.4 seconds  
 I'm a little surprised that OpenVINO's performance is just on par with tensorflow's performance on
 a cpu.  I would still expect it to be better on MYRIAD, GPU, or FPGA.
 
+Based on the timing my model will not be running in real-time on my CPU for this project, it will be
+running offline.  Some applications may require real-time, in which case different hardware or a
+different model should be explored.
+
 ## Assess Model Use Cases
 
 Some theme parks only allow a certain number of people in at a time, they count people as they go

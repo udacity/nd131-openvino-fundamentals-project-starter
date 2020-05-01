@@ -103,6 +103,11 @@ def infer_on_stream(args, client):
     ### Read from the video capture ###
     got_frame, frame = vc.read()
 
+    ### Initialize for stats calculation ###
+    last_detections = None
+    start_frame = None
+    total_count = 0
+
     ### Loop until stream is over ###
     while got_frame:
 
@@ -122,12 +127,22 @@ def infer_on_stream(args, client):
                                               whitelist_filter=[1],
                                               normalization_consts=normalization_consts)
 
-        ### TODO: Extract any desired stats from the results ###
-        current_count = 0
-        total_count = 0
-        duration = 0
+        ### Extract any desired stats from the results ###
+        ### Calculate and send relevant information on ###
+        #TODO improve, use bbox to identify if it is the same person and support multiple people, currently should work for assignment
+        current_count = detections['num_detections']
+        if current_count > 0 and last_detections:
+            if last_detections['num_detections'] > 0:
+                duration = (vc.get(cv2.CAP_PROP_POS_MSEC) - start_frame) / 1000.0
+            else:
+                total_count += current_count
+                duration = 0
+                start_frame = vc.get(cv2.CAP_PROP_POS_MSEC)
+        else:
+            duration = 0
 
-        ### TODO: Calculate and send relevant information on ###
+        last_detections = detections
+
         ### current_count, total_count and duration to the MQTT server ###
         ### Topic "person": keys of "count" and "total" ###
         client.publish("person", json.dumps({"count": current_count,
@@ -139,7 +154,7 @@ def infer_on_stream(args, client):
         img = draw_bboxes(frame, detections)
         cv2.putText(img,
             f'current: {current_count} total: {total_count} duration: {duration}',
-            (0, 0),
+            (0, 100),
             cv2.FONT_HERSHEY_SIMPLEX,
             .5,
             (255,255,255),

@@ -145,7 +145,9 @@ class Network:
         #print(output.shape)
         if whitelist_filter:
             output = output[np.isin(output[:, 1], whitelist_filter), :]
-        return {'batch': output[:, 0],
+        num_detections = output.shape[0]
+        return {'num_detections': num_detections,
+                'batch': output[:, 0],
                 'class': output[:, 1],
                 'score': output[:, 2],
                 'bbox': output[:, 3:] / np.hstack((normalization_consts, normalization_consts))}

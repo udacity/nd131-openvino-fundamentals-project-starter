@@ -73,5 +73,6 @@ WORKDIR $WORKSPACE
 RUN cd $WORKSPACE/webservice/server \
   && npm install \
   && cd $WORKSPACE/webservice/ui \
-  && npm install
+  && npm install \
+  && npm install mosca
 
