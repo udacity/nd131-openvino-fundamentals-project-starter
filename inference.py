@@ -51,7 +51,7 @@ class Network:
         self.net.batch_size = self.batch_size
         self.exec_net = core.load_network(network=self.net, device_name=self.device)
         t2 = cv2.getTickCount()
-        print(f'Time taken to load model = {(t2-t1)/cv2.getTickFrequency()} seconds')
+        #print(f'Time taken to load model = {(t2-t1)/cv2.getTickFrequency()} seconds')
 
         # Get the supported layers of the network
         supported_layers = core.query_network(network=self.net, device_name=self.device)
@@ -121,7 +121,7 @@ class Network:
         t1 = cv2.getTickCount()
         detections = self.exec_net.infer({self.input_blob: image})
         t2 = cv2.getTickCount()
-        print(f'Time taken to execute model = {(t2-t1)/cv2.getTickFrequency()} seconds')
+        #print(f'Time taken to execute model = {(t2-t1)/cv2.getTickFrequency()} seconds')
         return detections
 
     def get_output(self, detections_arr, threshold=0.3, normalization_consts=[1.0, 1.0]):
@@ -217,8 +217,8 @@ if __name__ == '__main__':
     batch = np.stack((np.squeeze(image), ) * args.batch_size, axis=0)
 
     # synchronous example
-    detections = net.sync_exec_net(batch)
-    detections = net.sync_exec_net(batch)
+    #detections = net.sync_exec_net(batch)
+    #detections = net.sync_exec_net(batch)
 
     # asynchronous example
     handle = net.async_exec_net(batch)

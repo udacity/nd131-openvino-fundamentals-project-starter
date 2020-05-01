@@ -31,7 +31,7 @@ import logging as log
 import paho.mqtt.client as mqtt
 
 from argparse import ArgumentParser
-from inference import Network
+from inference import Network, preprocess_image, draw_bboxes
 
 # MQTT server environment variables
 HOSTNAME = socket.gethostname()
@@ -85,11 +85,12 @@ def infer_on_stream(args, client):
     :return: None
     """
     # Initialise the class
-    infer_network = Network()
+    infer_network = Network(args.model[:-4], args.device)
     # Set Probability threshold for detections
     prob_threshold = args.prob_threshold
 
-    ### TODO: Load the model through `infer_network` ###
+    ### Load the model through `infer_network` ###
+    infer_network.load_model()
 
     ### TODO: Handle the input stream ###
 
@@ -97,14 +98,17 @@ def infer_on_stream(args, client):
 
         ### TODO: Read from the video capture ###
 
-        ### TODO: Pre-process the image as needed ###
+        ### Pre-process the image as needed ###
+        image, normalization_consts = preprocess_image(image, width=640, height=640, preserve_aspect_ratio=True):
 
-        ### TODO: Start asynchronous inference for specified request ###
+        ### Start asynchronous inference for specified request ###
+        infer_request_handle = infer_network.async_exec_net(image[np.newaxis, :, :, :])
 
-        ### TODO: Wait for the result ###
+        ### Wait for the result ###
+        detections = infer_network.async_wait(infer_request_handle)
 
-            ### TODO: Get the results of the inference request ###
-
+            ### Get the results of the inference request ###
+           detections = infer_network.get_output(detections, normalization_consts=normalization_consts)
             ### TODO: Extract any desired stats from the results ###
 
             ### TODO: Calculate and send relevant information on ###
@@ -113,8 +117,10 @@ def infer_on_stream(args, client):
             ### Topic "person/duration": key of "duration" ###
 
         ### TODO: Send the frame to the FFMPEG server ###
+        # draw_bboxes(image, detections)
 
         ### TODO: Write an output image if `single_image_mode` ###
+        cv2.imwrite('ov_od.png', img)
 
 
 def main():

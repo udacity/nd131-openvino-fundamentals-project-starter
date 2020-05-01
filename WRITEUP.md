@@ -171,3 +171,8 @@ neural network standards.  Images that have both a width and height smaller than
 be enlarged.  Unless the training set has a lot of examples that are also enlarged the model
 will likely do worse.
 
+Motion blur - video often suffers from artifacts that still images do not such as motion blur,
+this is another possible source of blurring that could cause a drop in accuracy. We may want to
+check in advance if our end-user has a nice camera with a global shutter or if they have a rolling
+shutter, in which case we would want to collect some images from video with rolling shutter and
+determine if it is better to ignore images with these artifacts or to include them.
