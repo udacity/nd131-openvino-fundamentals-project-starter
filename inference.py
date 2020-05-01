@@ -22,9 +22,6 @@
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-#import os
-#import sys
-#import logging as log
 import time
 import cv2
 import numpy as np
@@ -49,16 +46,12 @@ class Network:
         model_structure = self.model + '.xml'
 
         t1 = cv2.getTickCount()
-        #model=IENetwork(model_structure, model_weights)
-
         core = IECore()
-        #self.net = core.load_network(network=model, device_name=self.device, num_requests=1)
         self.net = core.read_network(model=model_structure, weights=model_weights)
         self.net.batch_size = self.batch_size
         self.exec_net = core.load_network(network=self.net, device_name=self.device)
-
         t2 = cv2.getTickCount()
-        print(f'Time taken to load model = {(t2-t1)/cv2.getTickFrequency()} seconds')
+        #print(f'Time taken to load model = {(t2-t1)/cv2.getTickFrequency()} seconds')
 
         # Get the supported layers of the network
         supported_layers = core.query_network(network=self.net, device_name=self.device)
@@ -125,13 +118,13 @@ class Network:
         -------
             detections_arr: the array of detections
         """
-        t1 = cv2.getTickCount()
+        #t1 = cv2.getTickCount()
         detections = self.exec_net.infer({self.input_blob: image})
-        t2 = cv2.getTickCount()
-        print(f'Time taken to execute model = {(t2-t1)/cv2.getTickFrequency()} seconds')
+        #t2 = cv2.getTickCount()
+        #print(f'Time taken to execute model = {(t2-t1)/cv2.getTickFrequency()} seconds')
         return detections
 
-    def get_output(self, detections_arr, threshold=0.3):
+    def get_output(self, detections_arr, threshold=0.3, normalization_consts=[1.0, 1.0]):
         """
         Change the format of the detections
 
@@ -151,13 +144,41 @@ class Network:
         return {'batch': output[:, 0],
                 'class': output[:, 1],
                 'score': output[:, 2],
-                'bbox': output[:, 3:]}
+                'bbox': output[:, 3:] / np.hstack((normalization_consts, normalization_consts))}
 
-def preprocess_image(image, width=640, height=640):
-    image = cv2.resize(image.copy(), (width, height)) #TODO verify resizing correctly
+def preprocess_image(image, width=640, height=640, preserve_aspect_ratio=True):
+    """
+    Parameters
+    ----------
+        image: image to run preprocessing on
+        width: desired width
+        height: desired height
+        preserve_aspect_ratio: boolean, https://docs.openvinotoolkit.org/latest/_docs_MO_DG_prepare_model_convert_model_tf_specific_Convert_Object_Detection_API_Models.html specifies for different models
+
+    Returns
+    -------
+        image: with preprocessing applied
+        normalization_consts: ratio of the image pixels to image with padding
+    """
+    normalization_consts = [1.0, 1.0]
+    if preserve_aspect_ratio:
+        rows, cols, _ = image.shape
+        fx = height * 1.0 / cols
+        fy = width * 1.0 / rows
+        if fx < fy:
+            fy = fx
+        else:
+            fx = fy
+        resized = cv2.resize(image.copy(), (0, 0), fx=fx, fy=fy)
+        image = np.zeros((height, width, 3), np.uint8)
+        normalization_consts = [resized.shape[1] * 1.0 / image.shape[1],
+                                resized.shape[0] * 1.0 / image.shape[0]]
+        image[:resized.shape[0], :resized.shape[1], :] = resized
+    else:
+        image = cv2.resize(image.copy(), (width, height))
     image = image[:, :, ::-1] # BGR2RGB
     image = image.transpose((2,0,1)) # Channels first
-    return image
+    return image, normalization_consts
 
 def draw_bboxes(image, detections):
     img = image.copy()
@@ -165,8 +186,8 @@ def draw_bboxes(image, detections):
         classId = int(detections['class'][i])
         score = float(detections['score'][i])
         bbox = [float(v) for v in detections['bbox'][i]]
-        print(f"class: {classId}, score: {score}, bbox: {bbox}")
         if score > 0.3:
+            #print(f"batch: {detections['batch'][i]} class: {classId}, score: {score}, bbox: {bbox}")
             y = bbox[1] * img.shape[0]
             x = bbox[0] * img.shape[1]
             bottom = bbox[3] * img.shape[0]
@@ -182,6 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', default='frozen_inference_graph', type=str, help='path to the model excluding the extension')
     parser.add_argument('--device', default='CPU', type=str, help='the device to run inference on, one of CPU, GPU, MYRIAD, FPGA')
     parser.add_argument('--batch-size', default=1, type=int, help='size of the batch')
+    parser.add_argument('--preserve-aspect-ratio', default=True, type=bool, help='whether to preserve the aspect ratio')
 
     args = parser.parse_args()
 
@@ -192,7 +214,7 @@ if __name__ == '__main__':
     input_shape = net.get_input_shape()
     print(f'input_shape {input_shape}')
 
-    image = preprocess_image(img, input_shape[3], input_shape[2])
+    image, normalization_consts = preprocess_image(img, input_shape[3], input_shape[2], args.preserve_aspect_ratio)
     batch = np.stack((np.squeeze(image), ) * args.batch_size, axis=0)
 
     # synchronous example
@@ -202,7 +224,7 @@ if __name__ == '__main__':
     # asynchronous example
     handle = net.async_exec_net(batch)
     detections = net.async_wait(handle)
-    detections_dict = net.get_output(detections)
+    detections_dict = net.get_output(detections, normalization_consts=normalization_consts)
 
     img = draw_bboxes(img, detections_dict)
 
