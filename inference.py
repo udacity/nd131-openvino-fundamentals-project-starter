@@ -25,7 +25,8 @@
 import time
 import cv2
 import numpy as np
-from openvino.inference_engine import IECore #IENetwork,
+from openvino.inference_engine import IECore
+import logging
 
 
 class Network:
@@ -45,13 +46,13 @@ class Network:
         model_weights = self.model + '.bin'
         model_structure = self.model + '.xml'
 
-        #t1 = cv2.getTickCount()
+        t1 = cv2.getTickCount()
         core = IECore()
         self.net = core.read_network(model=model_structure, weights=model_weights)
         self.net.batch_size = self.batch_size
         self.exec_net = core.load_network(network=self.net, device_name=self.device)
-        #t2 = cv2.getTickCount()
-        #print(f'Time taken to load model = {(t2-t1)/cv2.getTickFrequency()} seconds')
+        t2 = cv2.getTickCount()
+        logging.debug(f'Time taken to load model = {(t2-t1)/cv2.getTickFrequency()} seconds')
 
         # Get the supported layers of the network
         supported_layers = core.query_network(network=self.net, device_name=self.device)
@@ -60,8 +61,8 @@ class Network:
         # know if anything is missing. Exit the program, if so.
         unsupported_layers = [l for l in self.net.layers.keys() if l not in supported_layers]
         if len(unsupported_layers) != 0:
-            print("Unsupported layers found: {}".format(unsupported_layers))
-            print("Check whether extensions are available to add to IECore.")
+            logging.error("Unsupported layers found: {}".format(unsupported_layers))
+            logging.error("Check whether extensions are available to add to IECore.")
             exit(1)
 
         # Get the input layer
@@ -106,7 +107,7 @@ class Network:
         detections = infer_request_handle.outputs
         return detections
 
-    def sync_exec_net(self, image):
+    def sync_exec_net(self, batch):
         """
         Synchronously run prediction on a batch with the network
 
@@ -118,10 +119,10 @@ class Network:
         -------
             detections_arr: the array of detections
         """
-        #t1 = cv2.getTickCount()
-        detections = self.exec_net.infer({self.input_blob: image})
-        #t2 = cv2.getTickCount()
-        #print(f'Time taken to execute model = {(t2-t1)/cv2.getTickFrequency()} seconds')
+        t1 = cv2.getTickCount()
+        detections = self.exec_net.infer({self.input_blob: batch})
+        t2 = cv2.getTickCount()
+        logging.debug(f'Time taken to execute model = {(t2-t1)/cv2.getTickFrequency()} seconds')
         return detections
 
     def get_output(self, detections_arr, threshold=0.3, whitelist_filter=[], normalization_consts=[1.0, 1.0]):
@@ -192,7 +193,7 @@ def draw_bboxes(image, detections):
         score = float(detections['score'][i])
         bbox = [float(v) for v in detections['bbox'][i]]
         if score > 0.3:
-            #print(f"batch: {detections['batch'][i]} class: {classId}, score: {score}, bbox: {bbox}")
+            logging.debug(f"batch: {detections['batch'][i]} class: {classId}, score: {score}, bbox: {bbox}")
             y = bbox[1] * img.shape[0]
             x = bbox[0] * img.shape[1]
             bottom = bbox[3] * img.shape[0]
@@ -209,8 +210,21 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='CPU', type=str, help='the device to run inference on, one of CPU, GPU, MYRIAD, FPGA')
     parser.add_argument('--batch-size', default=1, type=int, help='size of the batch')
     parser.add_argument('--preserve-aspect-ratio', default=True, type=bool, help='whether to preserve the aspect ratio')
+    parser.add_argument('--log-level',
+                        default='error',
+                        type=str,
+                        choices=['debug', 'info', 'warning', 'error', 'critical'],
+                        help='the log level, one of debug, info, warning, error, critical')
 
     args = parser.parse_args()
+
+    LEVELS = {'debug': logging.DEBUG,
+              'info': logging.INFO,
+              'warning': logging.WARNING,
+              'error': logging.ERROR,
+              'critical': logging.CRITICAL}
+    log_level = LEVELS.get(args.log_level, logging.ERROR)
+    logging.basicConfig(level=log_level)
 
     img = cv2.imread(args.filepath)
 
