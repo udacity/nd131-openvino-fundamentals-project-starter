@@ -181,6 +181,9 @@ check in advance if our end-user has a nice camera with a global shutter or if t
 shutter, in which case we would want to collect some images from video with rolling shutter and
 determine if it is better to ignore images with these artifacts or to include them.
 
+If we can accept lower or comparable accuracy but need it to run faster we could try batching
+or a faster model.
+
 ## Results
 
 My model is a little slow on my hardware, but the accuracy is quite good. I included some
