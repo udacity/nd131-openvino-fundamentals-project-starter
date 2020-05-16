@@ -1,5 +1,7 @@
 # Deploy a People Counter App at the Edge
 
+[![Python Version](https://img.shields.io/badge/Python-3.5|3.6-blue.svg)](https://shields.io/)
+
 ![people-counter-python](./images/people-counter-image.png)
 
 ## What it Does
