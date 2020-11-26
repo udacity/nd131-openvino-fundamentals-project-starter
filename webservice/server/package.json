@@ -14,7 +14,8 @@
   "license": "ISC",
   "homepage": "https://www.udacity.com",
   "dependencies": {
-    "mosca": "^2.5.2",
-    "uuid4": "^1.0.0"
+    "mosca": "2.8.3",
+    "uuid4": "^1.0.0",
+    "jsonschema":"1.2.6"    
   }
 }
