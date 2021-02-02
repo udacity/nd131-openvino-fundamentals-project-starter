@@ -52,11 +52,15 @@ def build_argparser():
                         help="Path to an xml file with a trained model.")
     parser.add_argument("-i", "--input", required=True, type=str,
                         help="Path to image or video file")
-    parser.add_argument("-l", "--cpu_extension", required=False, type=str,
-                        default=None,
-                        help="MKLDNN (CPU)-targeted custom layers."
-                             "Absolute path to a shared library with the"
-                             "kernels impl.")
+    
+    # Note - CPU extensions are moved to plugin since OpenVINO release 2020.1. 
+    # The extensions are loaded automatically while     
+    # loading the CPU plugin, hence 'add_extension' need not be used.
+    #     parser.add_argument("-l", "--cpu_extension", required=False, type=str,
+    #                         default=None,
+    #                         help="MKLDNN (CPU)-targeted custom layers."
+    #                              "Absolute path to a shared library with the"
+    #                              "kernels impl.")
     parser.add_argument("-d", "--device", type=str, default="CPU",
                         help="Specify the target device to infer on: "
                              "CPU, GPU, FPGA or MYRIAD is acceptable. Sample "
