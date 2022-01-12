@@ -1,8 +1,6 @@
 # Deploy a People Counter App at the Edge
 
-| Details            |              |
-|-----------------------|---------------|
-| Programming Language: |  Python 3.5 or 3.6 |
+[![Python Version](https://img.shields.io/badge/Python-3.5|3.6-blue.svg)](https://shields.io/)
 
 ![people-counter-python](./images/people-counter-image.png)
 
