@@ -33,7 +33,7 @@ git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
 cd ffmpeg
 git checkout 2ca65fc7b74444edd51d5803a2c1e05a801a6023
 ./configure
-make -j4
+make -j4 CFLAGS="-fno-stack-check"
 ```
 
 ### Install NPM
