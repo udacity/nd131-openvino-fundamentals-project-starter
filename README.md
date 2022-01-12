@@ -1,8 +1,33 @@
 # Deploy a People Counter App at the Edge
 
-[![Python Version](https://img.shields.io/badge/Python-3.5|3.6-blue.svg)](https://shields.io/)
+| Details            |              |
+|-----------------------|---------------|
+| Programming Language: |  Python 3.5 or 3.6 |
 
 ![people-counter-python](./images/people-counter-image.png)
+
+## Table of contents
+
+1. [What it does](#what-it-does)
+2. [How it Works](#how-it-works)
+3. [Requirements](#requirements)<br>
+&nbsp;&nbsp;3.1 [Hardware](#hardware)<br>
+&nbsp;&nbsp;3.2 [Software](#software)<br>
+4. [Setup](#setup)<br>
+&nbsp;&nbsp;4.1 [Install Intel® Distribution of OpenVINO™ toolkit](#install-intel-distribution-of-openvino-toolkit)<br>
+&nbsp;&nbsp;4.2 [Install Nodejs and its dependencies](#install-nodejs-and-its-dependencies)<br>
+&nbsp;&nbsp;4.3 [Install npm](#install-npm)<br>
+5. [Run the application](#run-the-application)<br>
+&nbsp;&nbsp;5.1 [Step 1 - Start the Mosca server](#step-1---start-the-mosca-server)<br>
+&nbsp;&nbsp;5.2 [Step 2 - Start the GUI](#step-2---start-the-gui)<br>
+&nbsp;&nbsp;5.3 [Step 3 - FFmpeg Server](#step-3---ffmpeg-server)<br>
+&nbsp;&nbsp;5.4 [Step 4 - Run the code](#step-4---run-the-code)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;5.41 [Setup the environment](#setup-the-environment)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;5.41 [Running on the CPU](#running-on-the-cpu)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;5.41 [Running on the Intel® Neural Compute Stick](#running-on-the-intel-neural-compute-stick)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;5.41 [Using a camera stream instead of a video file](#using-a-camera-stream-instead-of-a-video-file)<br>
+6. [A Note on Running Locally](#a-note-on-running-locally)
+
 
 ## What it Does
 
